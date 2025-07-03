@@ -1,125 +1,69 @@
 # 🎓 Student Dashboard Web App
 
-A modern student dashboard for managing academic performance — built with **React**, **Tailwind CSS**, **MySQL**, and **Node.js**. This full-stack application supports student record management, status tracking (Passed, Conditional, At Risk), data filtering, Excel export, and light/dark mode UI.
+A modern student dashboard for managing academic performance — built with **React**, **Tailwind CSS**, and **Firebase**. It supports student record management, filtering, data visualization, Excel export, and light/dark mode UI.
 
-> 🚀 Live Demo: _[Your Live Link Here]_  
-> 📦 Backend Repo: _[Backend GitHub Repo Link Here]_  
-> 🌐 Frontend Repo: _[Frontend GitHub Repo Link Here]_
+> 🚀 **Live Demo**: [https://student-dashboard-liard.vercel.app/](https://student-dashboard-liard.vercel.app/)
 
 ---
 
 ## 📸 Features
 
-- 🔍 Search, filter, and edit student records  
-- 📊 Interactive dashboard with chart summaries  
-- 🌒 Light & Dark mode UI  
-- 📦 Export filtered reports to Excel  
-- ⏰ Real-time clock display  
-- 🧪 Toast notifications and loading spinners  
-- 💻 Fully responsive design  
+- 🔍 Add, edit, delete, and search student records  
+- 📊 Dashboard with charts and stats  
+- 🌗 Light/Dark mode  
+- 📤 Export reports to Excel  
+- ⏰ Real-time clock  
+- 🧁 Toast notifications and spinners  
+- 💻 Fully responsive UI
 
 ---
 
 ## 🛠 Tech Stack
 
-**Frontend:**
-- React + Vite  
-- Tailwind CSS  
-- Recharts  
-- Axios  
-- React CountUp  
-- React Toastify  
-
-**Backend:**
-- Node.js + Express  
-- MySQL (local or cloud like Planetscale/Railway)  
-- CORS, dotenv, body-parser  
+- **React + Vite**
+- **Tailwind CSS**
+- **Firebase Firestore** (NoSQL DB)
+- **Recharts**, **React CountUp**, **React Toastify**
+- **xlsx** for Excel export
 
 ---
 
-## 🔧 Setup Instructions
+## 🔧 Setup
 
-### 1. Clone the Repositories
+### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-username/student-dashboard-frontend.git
-git clone https://github.com/your-username/student-dashboard-backend.git
-```
-
-Frontend Setup
-cd student-dashboard-frontend
+git clone https://github.com/rhinehartdev/student-dashboard.git
+cd student-dashboard
 npm install
 npm run dev
-
-Backend Setup
-cd ../student-dashboard-backend
-npm install
-
-Create a .env file:
-
-env
-PORT=3001
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=yourpassword
-DB_NAME=studentdb
-
-Start the backend:
-
-bash
-node index.js
-
-MySQL Table Setup
-CREATE TABLE students (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255),
-  section VARCHAR(255),
-  grade FLOAT,
-  status ENUM('Passed', 'Conditional', 'At Risk')
-);
-
-🚀 Deployment
-Frontend (Netlify or Vercel)
-Push frontend to GitHub
-
-Import the repository into Netlify or Vercel
-
-Set the build command to npm run build and output directory to dist
-
-Make sure all Axios requests point to the deployed backend URL
-
-Backend (Render or Railway)
-Push backend to GitHub
-
-Import the repo to Render or Railway
-
-Set environment variables from your .env
-
-Link to Planetscale or MySQL server
-
-Deploy as a web service
 ```
-🗂 Folder Structure
-student-dashboard/
-├── backend/
-│   └── index.js
-│   └── db.js
-├── frontend/
-│   └── src/
-│       ├── components/
-│       ├── context/
-│       ├── pages/
-│       └── App.jsx
+
+Create src/firebase.js:
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+
 🧪 Future Improvements
- Add user authentication
+🔐 Auth (Admin login)
 
- Import/export via CSV
+📥 Import via CSV
 
- Printable PDF reports
+🖨️ PDF export
 
- Table pagination and sorting
- Role-based access (Admin/Teacher)
-```
+📄 Table pagination/sorting
 
-👨‍💻 Author
-Made with ❤️ by Rhinehart Dejucos
+🎓 Role-based access (Admin/Teacher)
+
+Made by Rhinehart Dejucos
