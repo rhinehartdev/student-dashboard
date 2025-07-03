@@ -1,5 +1,9 @@
 import { useEffect, useState, useContext } from "react";
-import axios from "axios";
+import {
+  collection,
+  getDocs
+} from "firebase/firestore";
+import { db } from "../firebase";
 import CountUp from "react-countup";
 import {
   BarChart,
@@ -21,17 +25,24 @@ const Dashboard = () => {
   const { isDark } = useContext(ThemeContext);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3001/students")
-      .then((res) => {
-        setStudents(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
+    const fetchStudents = async () => {
+      setLoading(true);
+      try {
+        const snapshot = await getDocs(collection(db, "students"));
+        const studentsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setStudents(studentsData);
+      } catch (err) {
         toast.error("Failed to fetch students.");
         console.error(err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchStudents();
   }, []);
 
   useEffect(() => {
@@ -136,9 +147,10 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* 📊 Bar Chart */}
           <div className="bg-white dark:bg-[#1f2937] p-8 rounded-2xl shadow-xl transition-all duration-300 ease-in-out">
-            <h2 className="text-base font-semibold text-gray-600 dark:text-gray-200 mb-4">Students by Status</h2>
+            <h2 className="text-base font-semibold text-gray-600 dark:text-gray-200 mb-4">
+              Students by Status
+            </h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
                 data={chartData}

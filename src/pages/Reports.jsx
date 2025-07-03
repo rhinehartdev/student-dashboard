@@ -1,9 +1,13 @@
 import { useEffect, useState, useContext } from "react";
-import axios from "axios";
 import * as XLSX from "xlsx";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ThemeContext } from "../context/ThemeContext";
+import {
+  collection,
+  getDocs
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 const Reports = () => {
   const [students, setStudents] = useState([]);
@@ -26,17 +30,24 @@ const Reports = () => {
   ];
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3001/students")
-      .then((res) => {
-        setStudents(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
+    const fetchStudents = async () => {
+      setLoading(true);
+      try {
+        const snapshot = await getDocs(collection(db, "students"));
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setStudents(data);
+      } catch (err) {
         toast.error("Failed to load student data.");
-        setLoading(false);
         console.error(err);
-      });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
   }, []);
 
   useEffect(() => {
@@ -145,21 +156,11 @@ const Reports = () => {
           <table className="min-w-full table-auto text-left">
             <thead className="bg-gray-100 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  ID
-                </th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Section
-                </th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Grade
-                </th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
-                  Status
-                </th>
+                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">ID</th>
+                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Name</th>
+                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Section</th>
+                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Grade</th>
+                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -183,15 +184,9 @@ const Reports = () => {
                             : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                         }`}
                       >
-                        {s.status === "Passed" && (
-                          <span className="text-lg">✅</span>
-                        )}
-                        {s.status === "Conditional" && (
-                          <span className="text-lg">⏳</span>
-                        )}
-                        {s.status === "At Risk" && (
-                          <span className="text-lg">⚠️</span>
-                        )}
+                        {s.status === "Passed" && <span className="text-lg">✅</span>}
+                        {s.status === "Conditional" && <span className="text-lg">⏳</span>}
+                        {s.status === "At Risk" && <span className="text-lg">⚠️</span>}
                         {s.status}
                       </span>
                     </td>
@@ -199,10 +194,7 @@ const Reports = () => {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-6 text-center text-gray-500 dark:text-gray-400"
-                  >
+                  <td colSpan="5" className="px-6 py-6 text-center text-gray-500 dark:text-gray-400">
                     No students found.
                   </td>
                 </tr>

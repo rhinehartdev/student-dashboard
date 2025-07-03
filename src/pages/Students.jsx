@@ -1,8 +1,16 @@
 import { useState, useEffect, useContext } from "react";
-import axios from "axios";
 import { ThemeContext } from "../context/ThemeContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -23,52 +31,55 @@ const Students = () => {
     fetchStudents();
   }, []);
 
-  const fetchStudents = () => {
+  const fetchStudents = async () => {
     setLoading(true);
-    axios
-      .get("http://localhost:3001/students")
-      .then((res) => {
-        setStudents(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        toast.error("Failed to fetch students.");
-        setLoading(false);
-      });
+    try {
+      const snapshot = await getDocs(collection(db, "students"));
+      const studentsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setStudents(studentsData);
+    } catch (err) {
+      toast.error("Failed to fetch students.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddStudent = (e) => {
+  const handleAddStudent = async (e) => {
     e.preventDefault();
     setSaving(true);
-
-    const url = editId
-      ? `http://localhost:3001/students/${editId}`
-      : "http://localhost:3001/students";
-    const method = editId ? "put" : "post";
-
-    axios[method](url, newStudent)
-      .then(() => {
-        toast.success(editId ? "Student updated!" : "Student added!");
-        resetForm();
-        fetchStudents();
-      })
-      .catch(() => {
-        toast.error("Failed to save student.");
-      })
-      .finally(() => setSaving(false));
+    try {
+      if (editId) {
+        const studentRef = doc(db, "students", editId);
+        await updateDoc(studentRef, newStudent);
+        toast.success("Student updated!");
+      } else {
+        await addDoc(collection(db, "students"), newStudent);
+        toast.success("Student added!");
+      }
+      resetForm();
+      fetchStudents();
+    } catch (error) {
+      toast.error("Failed to save student.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this student?")) return;
     setSaving(true);
-    axios
-      .delete(`http://localhost:3001/students/${id}`)
-      .then(() => {
-        toast.success("Student deleted!");
-        fetchStudents();
-      })
-      .catch(() => toast.error("Failed to delete student."))
-      .finally(() => setSaving(false));
+    try {
+      await deleteDoc(doc(db, "students", id));
+      toast.success("Student deleted!");
+      fetchStudents();
+    } catch (error) {
+      toast.error("Failed to delete student.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (student) => {
@@ -93,10 +104,8 @@ const Students = () => {
   return (
     <div className="p-6 ml-64 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300">
       <ToastContainer theme={isDark ? "dark" : "light"} />
-
       <h1 className="text-3xl font-extrabold mb-8 tracking-tight">Students</h1>
 
-      {/* Form */}
       <div className="mb-10 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
         <h2 className="text-xl font-bold mb-6">
           {editId ? "Edit Student" : "Add New Student"}
@@ -105,7 +114,7 @@ const Students = () => {
           <input
             type="text"
             placeholder="Name"
-            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-400 transition"
+            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             value={newStudent.name}
             onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
             required
@@ -113,7 +122,7 @@ const Students = () => {
           <input
             type="text"
             placeholder="Section"
-            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-400 transition"
+            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             value={newStudent.section}
             onChange={(e) => setNewStudent({ ...newStudent, section: e.target.value })}
             required
@@ -121,7 +130,7 @@ const Students = () => {
           <input
             type="number"
             placeholder="Grade"
-            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-400 transition"
+            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             value={newStudent.grade}
             onChange={(e) =>
               setNewStudent({ ...newStudent, grade: parseFloat(e.target.value) || 0 })
@@ -129,7 +138,7 @@ const Students = () => {
             required
           />
           <select
-            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-400 transition"
+            className="px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             value={newStudent.status}
             onChange={(e) => setNewStudent({ ...newStudent, status: e.target.value })}
           >
@@ -141,10 +150,10 @@ const Students = () => {
           <div className="md:col-span-4 flex gap-3 mt-4">
             <button
               type="submit"
-              className={`px-6 py-2 rounded-lg text-white font-semibold shadow transition-all duration-150 ${
+              className={`px-6 py-2 rounded-lg text-white font-semibold shadow ${
                 saving
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
+                  : "bg-blue-600 hover:bg-blue-700"
               }`}
               disabled={saving}
             >
@@ -153,7 +162,7 @@ const Students = () => {
             {editId && (
               <button
                 type="button"
-                className="px-6 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 font-semibold shadow transition-all duration-150"
+                className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-black dark:text-white rounded-lg"
                 onClick={resetForm}
                 disabled={saving}
               >
@@ -164,85 +173,55 @@ const Students = () => {
         </form>
       </div>
 
-      {/* Search & Legend */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      {/* Search & Table */}
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Search by name..."
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg shadow-sm w-full md:w-80 focus:ring-2 focus:ring-blue-400 transition"
+          className="px-4 py-2 mb-4 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg w-full md:w-80"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <div className="flex gap-3">
-          <span className="flex items-center gap-1 px-3 py-1 text-sm rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 font-semibold shadow-sm">
-            <span className="text-lg">✅</span> Passed
-          </span>
-          <span className="flex items-center gap-1 px-3 py-1 text-sm rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 font-semibold shadow-sm">
-            <span className="text-lg">⏳</span> Conditional
-          </span>
-          <span className="flex items-center gap-1 px-3 py-1 text-sm rounded-full bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 font-semibold shadow-sm">
-            <span className="text-lg">⚠️</span> At Risk
-          </span>
-        </div>
       </div>
 
-      {/* Table */}
       {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <span className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></span>
-          <span className="ml-4 text-gray-500 dark:text-gray-400 text-lg">Loading students...</span>
-        </div>
+        <div className="text-center text-gray-500 dark:text-gray-400">Loading students...</div>
       ) : (
         <div className="overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-2xl border border-gray-100 dark:border-gray-700">
           <table className="min-w-full table-auto text-left">
             <thead className="bg-gray-100 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">#</th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Name</th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Section</th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Grade</th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Status</th>
-                <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Actions</th>
+                <th className="px-6 py-3">#</th>
+                <th className="px-6 py-3">Name</th>
+                <th className="px-6 py-3">Section</th>
+                <th className="px-6 py-3">Grade</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length > 0 ? (
-                filteredStudents.map((student, idx) => (
+                filteredStudents.map((student, index) => (
                   <tr
                     key={student.id}
-                    className="border-t border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
+                    className="border-t hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                   >
-                    <td className="px-6 py-3">{student.id}</td>
-                    <td className="px-6 py-3 font-medium">{student.name}</td>
+                    <td className="px-6 py-3">{index + 1}</td>
+                    <td className="px-6 py-3">{student.name}</td>
                     <td className="px-6 py-3">{student.section}</td>
                     <td className="px-6 py-3">{student.grade}</td>
-                    <td className="px-6 py-3">
-                      <span
-                        className={`flex items-center gap-1 px-3 py-1 text-sm rounded-full font-semibold shadow-sm ${
-                          student.status === "Passed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            : student.status === "Conditional"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                        }`}
-                      >
-                        {student.status === "Passed" && <span className="text-lg">✅</span>}
-                        {student.status === "Conditional" && <span className="text-lg">⏳</span>}
-                        {student.status === "At Risk" && <span className="text-lg">⚠️</span>}
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
+                    <td className="px-6 py-3">{student.status}</td>
+                    <td className="px-6 py-3 space-x-2">
                       <button
                         onClick={() => handleEdit(student)}
-                        className="text-yellow-600 dark:text-yellow-300 hover:underline mr-3 font-semibold"
+                        className="text-yellow-600 dark:text-yellow-300 hover:underline"
                         disabled={saving}
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDelete(student.id)}
-                        className="text-red-600 dark:text-red-300 hover:underline font-semibold"
+                        className="text-red-600 dark:text-red-300 hover:underline"
                         disabled={saving}
                       >
                         Delete
@@ -252,7 +231,10 @@ const Students = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-6 text-center text-gray-500 dark:text-gray-400">
+                  <td
+                    colSpan="6"
+                    className="text-center text-gray-500 dark:text-gray-400 px-6 py-6"
+                  >
                     No students found.
                   </td>
                 </tr>
